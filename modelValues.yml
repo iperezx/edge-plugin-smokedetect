@@ -1,0 +1,5 @@
+siteID: 0
+cameraType: 0
+modelPath:
+  class: File
+  path: https://github.com/iperezx/edge-plugin-smokedetect/blob/master/model.tflite?raw=true
