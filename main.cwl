@@ -5,7 +5,7 @@ class: CommandLineTool
 cwlVersion: v1.1
 hints:
   DockerRequirement:
-    dockerImageId: r2d-2fvar-2ffolders-2fj6-2ff847737s17s4hwjc1g8n46600000gn-2ft-2frepo2cwl-5f8e7gbs7j-2frepo1620255658
+    dockerImageId: iperezx/r2d-2fvar-2ffolders-2fj6-2ff847737s17s4hwjc1g8n46600000gn-2ft-2frepo2cwl-5fsa7v7oym-2frepo1623273231:20210609-143052
 inputs:
   cameraType:
     inputBinding:
@@ -28,3 +28,6 @@ outputs:
     outputBinding:
       glob: ./model-inference-results.json
     type: File
+requirements:
+  NetworkAccess:
+    networkAccess: true

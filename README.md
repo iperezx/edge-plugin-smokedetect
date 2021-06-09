@@ -77,3 +77,143 @@ Finally you can run the docker container and get your results:
 ```
 Do you want to proceed and submit it for execution? [Y/n]: Y
 ```
+
+## Setup for MIC to upload model to MINT using notebooks:
+First need to prepare your [binder repository](https://mic-cli.readthedocs.io/en/latest/notebooks/prepare_binder/)
+Next, [expose software inputs and outputs](https://mic-cli.readthedocs.io/en/latest/notebooks/expose_inputs_outputs/). This is already done for this notebook.
+[Convert the repository to a software component] (https://mic-cli.readthedocs.io/en/latest/notebooks/convert_repository/):
+```
+mic notebook read https://github.com/iperezx/edge-plugin-smokedetect
+```
+The command should generate the following `main.cwl` file:
+```
+arguments:
+- --
+baseCommand: /app/cwl/bin/main
+class: CommandLineTool
+cwlVersion: v1.1
+hints:
+  DockerRequirement:
+    dockerImageId: r2d-2fvar-2ffolders-2fj6-2ff847737s17s4hwjc1g8n46600000gn-2ft-2frepo2cwl-5fsa7v7oym-2frepo1623273231
+inputs:
+  cameraType:
+    inputBinding:
+      prefix: --cameraType
+    type: int
+  modelPath:
+    inputBinding:
+      prefix: --modelPath
+    type: File
+  siteID:
+    inputBinding:
+      prefix: --siteID
+    type: int
+outputs:
+  imagePath:
+    outputBinding:
+      glob: ./hpwren-image-used-for-inference.jpeg
+    type: File
+  resultsPath:
+    outputBinding:
+      glob: ./model-inference-results.json
+    type: File
+requirements:
+  NetworkAccess:
+    networkAccess: true
+```
+Test the configuration file with a `values.yaml` file:
+```
+cameraType: 0
+siteID: 0
+modelPath:
+  class: File
+  path: /Users/iperezx/Documents/edge-plugin-smokedetect/model.tflite
+```
+cwltool main.cwl values.yaml
+```
+Expected output should be:
+```
+...
+Starting smoke detection inferencing
+Get image from HPWREN Camera
+Image url: http://hpwren.ucsd.edu/cameras/L/tje-1-mobo-c.jpg
+Description:  Unknown direction Color Original
+Perform an inference based on trainned model
+Fire, 62.04%
+INFO [job main.cwl] Max memory used: 108MiB
+INFO [job main.cwl] completed success
+{
+    "imagePath": {
+        "location": "file:///Users/iperezx/Documents/edge-plugin-smokedetect/hpwren-image-used-for-inference.jpeg",
+        "basename": "hpwren-image-used-for-inference.jpeg",
+        "class": "File",
+        "checksum": "sha1$e98f05c7871a47e3543c91b75bcb1a5efcefbdb3",
+        "size": 3300,
+        "path": "/Users/iperezx/Documents/edge-plugin-smokedetect/hpwren-image-used-for-inference.jpeg"
+    },
+    "resultsPath": {
+        "location": "file:///Users/iperezx/Documents/edge-plugin-smokedetect/model-inference-results.json",
+        "basename": "model-inference-results.json",
+        "class": "File",
+        "checksum": "sha1$221b0f02811f658726bc116c446b6e1e9df559ff",
+        "size": 283,
+        "path": "/Users/iperezx/Documents/edge-plugin-smokedetect/model-inference-results.json"
+    }
+}
+```
+Finally the upload part:
+Upload Docker Image:
+```
+mic notebook upload-image main.cwl
+```
+
+Upload Model Component
+```
+mic notebook upload-component main.cwl values.yaml
+```
+
+Now test with `dame`:
+```
+dame run 9b2d70e9-e6f9-4ac4-9dff-62b8e1991080 -p wifire
+```
+Prompts you for the path of the `model.tflite`:
+```
+To run this model configuration,a modelPath file (.unknown file) is required.
+Please enter a url: model.tflite
+```
+
+`dame` will generate multiple .yaml files to run now with `cwltool`:
+```
+cwltool /Users/iperezx/Documents/edge-plugin-smokedetect/spec.yaml /Users/iperezx/Documents/edge-plugin-smokedetect/values.yml
+```
+If successfull, this is the expected output:
+```
+...
+Starting smoke detection inferencing
+Get image from HPWREN Camera
+Image url: http://hpwren.ucsd.edu/cameras/L/tje-1-mobo-c.jpg
+Description:  Unknown direction Color Original
+Perform an inference based on trainned model
+Fire, 67.10%
+INFO [job spec.yaml] Max memory used: 108MiB
+INFO [job spec.yaml] completed success
+{
+    "imagePath": {
+        "location": "file:///Users/iperezx/Documents/edge-plugin-smokedetect/hpwren-image-used-for-inference.jpeg",
+        "basename": "hpwren-image-used-for-inference.jpeg",
+        "class": "File",
+        "checksum": "sha1$bea7edd55cf9b2c9a81ceaebc7c5213b5fb5fd2c",
+        "size": 3266,
+        "path": "/Users/iperezx/Documents/edge-plugin-smokedetect/hpwren-image-used-for-inference.jpeg"
+    },
+    "resultsPath": {
+        "location": "file:///Users/iperezx/Documents/edge-plugin-smokedetect/model-inference-results.json",
+        "basename": "model-inference-results.json",
+        "class": "File",
+        "checksum": "sha1$b6f4b4cf5a16f4ffa6f52dc0b62ee48503285144",
+        "size": 283,
+        "path": "/Users/iperezx/Documents/edge-plugin-smokedetect/model-inference-results.json"
+    }
+}
+INFO Final process status is success
+```
